@@ -1,67 +1,33 @@
-<p align="center"><strong>codex-config 用 Git 管理 Codex 全局规则、本机工具索引和接入脚本</strong></p>
+# Workstation configuration
 
-<p align="center">
-  <a href="#安装">安装</a> ·
-  <a href="environment/INDEX.md">工具清单</a> ·
-  <a href="#日常同步">日常同步</a>
-</p>
+这个仓库管理 macOS 开发工作站的**期望配置**。Codex 是其中一个子项；Wiki 记录设计、迁移和故障过程。本机已安装版本、CLI 路径、探测错误和对账结果写入 `~/.local/state/env/inventory.json`，不进 Git。
 
-## 核心内容
+## 目录
 
-- `AGENTS.md` 保存跨项目通用的工程判断、证据边界和协作约定。
-- `environment/` 记录本机已经核验的 CLI、MCP、应用和文档处理入口。
-- `bootstrap/install.sh` 把 Codex 的标准读取路径接到这个仓库。
-- 工具索引按任务查阅，项目自己的规则、Skill、Hook 和 CI 仍然优先。
+| 路径 | 职责 |
+| --- | --- |
+| `macos/manifest/` | Brewfile、受管能力探测目标、zsh、Android/Gradle、GUI 环境声明 |
+| `codex/` | 部署到 `~/.codex` 的全局规则和稳定能力导航 |
+| `.agents/skills/` | 工作站审计、供给、Android/Flutter、shell 四个项目技能 |
+| `scripts/` | 唯一的 Brewfile 探测/声明/验证脚本及本机状态生成器 |
+| `bin/workstation` | 只读检查、状态读取、按组件部署和落位验证 |
 
-## 安装
+以本仓库为 Codex 当前项目时，项目技能可以从 `.agents/skills/` 发现。独立 `skills` 仓库继续管理其他个人技能。
 
-```sh
-git clone https://github.com/zhouycheng/codex-config.git ~/.codex-config
-~/.codex-config/bootstrap/install.sh
-```
-
-脚本会建立两个符号链接：
-
-```text
-~/.codex/AGENTS.md       → ~/.codex-config/AGENTS.md
-~/.codex/environment     → ~/.codex-config/environment
-```
-
-目标位置已有文件时，脚本先创建并校验备份；其他已有路径会改名保留。重复执行不会重建正确的链接。修改全局规则后，重启 Codex 或新建任务，让新的指令链生效。
-
-## 工具索引
-
-2026 年 9 月 8 日的本机核验记录包含 95 个 CLI 命令和 9 个 Codex MCP 配置，其中 8 个 MCP 已启用。完整清单、入口和当前运行条件见：
-
-- [开发、CLI、MCP 和应用](environment/development.md)
-- [文档、PDF、表格和交付文件](environment/documents.md)
-- [公开资料和研究](environment/research.md)
-
-工具出现在清单中，只表示本机已经找到对应入口。涉及账号、额度、后台服务、GUI 或项目依赖时，使用前仍需按说明检查。
-
-## 本机差异
-
-需要记录不适合提交的设备路径或私有服务时，将模板复制为本机覆盖文件：
+## 新机和日常使用
 
 ```sh
-cp ~/.codex-config/environment/local.example.md ~/.codex/environment/local.md
+git clone https://github.com/zhouycheng/workstation-config.git ~/workstation-config
+cd ~/workstation-config
+bin/workstation check
+bin/workstation inventory refresh
+bin/workstation inventory status
 ```
 
-`local.md` 已加入 Git 忽略规则。不要在仓库中保存 token、密码、Cookie、私钥或其他凭证。
+`check` 只读；无参数仅显示用法。先读差异，再按实际决定逐项安装或部署。组件落位命令为 `bin/workstation apply codex|shell|android|gui`，随后运行 `bin/workstation verify`。首次 `apply gui` 安装本机 LaunchAgent 并立即刷新状态；以后在本地时间 00:00、06:00、12:00、18:00 只读刷新。普通终端启动不下载分发或安装包。
 
-## 日常同步
+清单超过 12 小时或配置摘要变化标为 stale；探测失败记为 unknown，并保留上一份成功分区供排障。执行依赖某项能力的操作前仍需定向核验它。`codex/environment/development.md` 是带日期的历史核验记录，不作为实时状态。
 
-```sh
-cd ~/.codex-config
-git pull --ff-only
-```
+Android/Flutter 工具升级后，先核对 `macos/manifest/gradle/distributions.json` 与真实模板及官方 SHA-256，再执行 `android_env check → prepare → verify`。`prepare` 从镜像准备标准 Wrapper 缓存，不修改新项目的 Wrapper URL。`proxy`、`flutter_source`、`gradle_mirror` 和 `flutter_new` 的旧调用方式保留。SDK、NDK、模拟器映像与 IDE Marketplace 单独检查。
 
-修改共享配置后，先检查差异和链接，再按需要提交：
-
-```sh
-git diff --check
-~/.codex-config/bootstrap/install.sh
-git status --short
-```
-
-仓库只跟踪规则、索引和接入脚本。Codex 的认证、会话、缓存、数据库和运行状态由各台电脑本地管理。
+不把密钥、认证、完整环境变量、Gradle 缓存或测试项目放进仓库。对系统代理和 TUN 的切换需要单独处理；本仓库的只读审计与定时任务不会切换它们。
