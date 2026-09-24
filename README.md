@@ -1,33 +1,106 @@
-# Workstation configuration
+<h1 align="center">Workstation Config</h1>
 
-这个仓库管理 macOS 开发工作站的**期望配置**。Codex 是其中一个子项；Wiki 记录设计、迁移和故障过程。本机已安装版本、CLI 路径、探测错误和对账结果写入 `~/.local/state/env/inventory.json`，不进 Git。
+<p align="center"><strong>用于检查、部署和持续维护 macOS 开发工作站的期望配置。</strong></p>
 
-## 目录
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white" alt="macOS">
+  <img src="https://img.shields.io/badge/config-Homebrew%20%C2%B7%20Shell%20%C2%B7%20Android-555555" alt="Managed config">
+  <img src="https://img.shields.io/badge/workflow-check%20%E2%86%92%20apply%20%E2%86%92%20verify-2F80ED" alt="Workflow">
+</p>
 
-| 路径 | 职责 |
-| --- | --- |
-| `macos/manifest/` | Brewfile、受管能力探测目标、zsh、Android/Gradle、GUI 环境声明 |
-| `codex/` | 部署到 `~/.codex` 的全局规则和稳定能力导航 |
-| `.agents/skills/` | 工作站审计、供给、Android/Flutter、shell 四个项目技能 |
-| `scripts/` | 唯一的 Brewfile 探测/声明/验证脚本及本机状态生成器 |
-| `bin/workstation` | 只读检查、状态读取、按组件部署和落位验证 |
+<p align="center">
+  <a href="#快速开始">快速开始</a> ·
+  <a href="#工作机制">工作机制</a> ·
+  <a href="#定期检查">定期检查</a> ·
+  <a href="https://github.com/zhouycheng/workstation-config/wiki">Wiki</a>
+</p>
 
-以本仓库为 Codex 当前项目时，项目技能可以从 `.agents/skills/` 发现。独立 `skills` 仓库继续管理其他个人技能。
+## 它是什么
 
-## 新机和日常使用
+这个仓库保存 macOS 开发工作站的**期望配置**，覆盖 Homebrew、Shell、Android / Gradle、GUI 环境和 Codex 配置。
+
+Git 负责保存可复现的配置声明与部署逻辑；当前机器的实际状态由本地 inventory 记录：
+
+```text
+~/.local/state/env/inventory.json
+```
+
+这样可以把“工作站应该是什么状态”和“当前机器实际是什么状态”分开管理，并通过统一命令完成检查、部署与验证。
+
+## 快速开始
 
 ```sh
 git clone https://github.com/zhouycheng/workstation-config.git ~/workstation-config
 cd ~/workstation-config
+
 bin/workstation check
 bin/workstation inventory refresh
 bin/workstation inventory status
 ```
 
-`check` 只读；无参数仅显示用法。先读差异，再按实际决定逐项安装或部署。组件落位命令为 `bin/workstation apply codex|shell|android|gui`，随后运行 `bin/workstation verify`。首次 `apply gui` 安装本机 LaunchAgent 并立即刷新状态；以后在本地时间 00:00、06:00、12:00、18:00 只读刷新。普通终端启动不下载分发或安装包。
+查看差异后，按组件部署需要的配置：
 
-清单超过 12 小时或配置摘要变化标为 stale；探测失败记为 unknown，并保留上一份成功分区供排障。执行依赖某项能力的操作前仍需定向核验它。`codex/environment/development.md` 是带日期的历史核验记录，不作为实时状态。
+```sh
+bin/workstation apply codex
+bin/workstation apply shell
+bin/workstation apply android
+bin/workstation apply gui
 
-Android/Flutter 工具升级后，先核对 `macos/manifest/gradle/distributions.json` 与真实模板及官方 SHA-256，再执行 `android_env check → prepare → verify`。`prepare` 从镜像准备标准 Wrapper 缓存，不修改新项目的 Wrapper URL。`proxy`、`flutter_source`、`gradle_mirror` 和 `flutter_new` 的旧调用方式保留。SDK、NDK、模拟器映像与 IDE Marketplace 单独检查。
+bin/workstation verify
+```
 
-不把密钥、认证、完整环境变量、Gradle 缓存或测试项目放进仓库。对系统代理和 TUN 的切换需要单独处理；本仓库的只读审计与定时任务不会切换它们。
+`check` 用于只读检查；`apply` 负责落位指定组件；`verify` 用于完成后的统一验证。
+
+## 工作机制
+
+| 阶段 | 作用 |
+| --- | --- |
+| `check` | 读取当前工作站状态，检查配置与能力 |
+| `apply <component>` | 部署指定组件，目前支持 `codex`、`shell`、`android`、`gui` |
+| `inventory refresh` | 刷新本机状态快照 |
+| `inventory status` | 查看 inventory 的更新时间与状态摘要 |
+| `verify` | 验证已部署配置是否正确落位 |
+
+项目技能位于 `.agents/skills/`，以本仓库作为 Codex 当前项目时可以直接发现。Codex 全局规则与稳定能力导航位于 `codex/`。
+
+Android / Flutter 工具升级后，使用下面的流程重新核验环境：
+
+```text
+android_env check → prepare → verify
+```
+
+同时核对 `macos/manifest/gradle/distributions.json` 与实际模板及官方 SHA-256。
+
+## 定期检查
+
+执行一次 `bin/workstation apply gui` 后，会安装本机 LaunchAgent，并立即刷新一次 inventory。之后按本地时间定期执行只读刷新：
+
+```text
+00:00  ·  06:00  ·  12:00  ·  18:00
+```
+
+inventory 超过 12 小时，或配置摘要发生变化时，会标记为 `stale`。需要依赖某项具体能力时，再对对应组件做一次定向核验。
+
+日常维护可以保持下面这条路径：
+
+```text
+check → 查看差异 → apply 对应组件 → verify
+```
+
+需要随时确认机器状态时，执行：
+
+```sh
+bin/workstation inventory status
+```
+
+## 目录
+
+| 路径 | 用途 |
+| --- | --- |
+| `macos/manifest/` | Brewfile、能力探测目标、zsh、Android / Gradle 与 GUI 环境声明 |
+| `codex/` | 部署到 `~/.codex` 的全局规则和能力导航 |
+| `.agents/skills/` | 工作站审计、供给、Android / Flutter、Shell 项目技能 |
+| `scripts/` | Brewfile 探测、声明、验证脚本与本机状态生成器 |
+| `bin/workstation` | 工作站检查、状态读取、组件部署与落位验证入口 |
+
+本仓库聚焦可复现配置与工作站状态管理。凭据、完整环境变量、Gradle 缓存和测试工程由本机环境管理；系统代理与 TUN 保持独立控制。
