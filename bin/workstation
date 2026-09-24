@@ -98,7 +98,7 @@ def gui_plist(kind):
         calendar = None
     else:
         label = 'com.zhou.workstation.inventory'
-        arguments = [sys.executable, str(ROOT / 'scripts/inventory.py'), 'refresh']
+        arguments = ['/usr/bin/python3', str(ROOT / 'scripts/inventory.py'), 'refresh']
         calendar = [{'Hour': hour, 'Minute': 0} for hour in (0, 6, 12, 18)]
     data = {'Label': label, 'ProgramArguments': arguments,
             'StandardOutPath': str(HOME / '.local/state/env' / f'{kind}.log'),

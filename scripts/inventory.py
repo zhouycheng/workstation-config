@@ -34,16 +34,7 @@ def run_local(command, timeout=90):
     env = os.environ.copy()
     env['HOMEBREW_NO_AUTO_UPDATE'] = '1'
     env['HOMEBREW_NO_ANALYTICS'] = '1'
-    env['PATH'] = os.pathsep.join(dict.fromkeys(filter(None, (
-        '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin',
-        '/usr/bin', '/bin', '/usr/sbin', '/sbin',
-        str(Path.home() / '.cargo/bin'), str(Path.home() / '.local/bin'),
-        str(Path.home() / 'Library/Android/sdk/platform-tools'),
-        str(Path.home() / 'Library/Android/sdk/emulator'),
-        str(Path.home() / 'Library/Android/sdk/cmdline-tools/latest/bin'),
-        '/opt/homebrew/opt/openjdk@21/bin', '/opt/homebrew/share/flutter/bin',
-        env.get('PATH', ''),
-    ))))
+    env['PATH'] = run_path()
     return subprocess.run(command, capture_output=True, text=True, timeout=timeout, env=env)
 
 
@@ -89,6 +80,7 @@ def run_path():
         '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin',
         '/usr/bin', '/bin', '/usr/sbin', '/sbin',
         str(Path.home() / '.cargo/bin'), str(Path.home() / '.local/bin'),
+        str(Path.home() / '.kimi-code/bin'),
         str(Path.home() / 'Library/Android/sdk/platform-tools'),
         str(Path.home() / 'Library/Android/sdk/emulator'),
         str(Path.home() / 'Library/Android/sdk/cmdline-tools/latest/bin'),
